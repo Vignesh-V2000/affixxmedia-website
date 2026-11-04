@@ -1,0 +1,63 @@
+/* Hallmark · AffixxMedia brand tokens */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("assets/plus-jakarta-sans.woff2") format("woff2");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+:root {
+  --color-paper: #f8f5f0;
+  --color-paper-2: #eee7df;
+  --color-paper-3: #e5d9cc;
+  --color-white: #fffdf9;
+  --color-ink: #201915;
+  --color-ink-2: #3b3029;
+  --color-muted: #61574f;
+  --color-rule: #d6c9bd;
+  --color-rule-input: #8d7d71;
+  --color-night: #151210;
+  --color-night-2: #211b17;
+  --color-night-rule: #4b3b32;
+  --color-night-muted: #d0bfb3;
+  --color-brand: #b9765f;
+  --color-accent: #e4ac93;
+  --color-accent-hover: #f0c3ad;
+  --color-accent-deep: #853d28;
+  --color-accent-ink: #25160f;
+  --color-focus: #9e492d;
+  --color-focus-dark: #f1c0a5;
+  --color-transparent: transparent;
+  --color-stage-fade: rgb(21 18 16 / 0%);
+  --font-brand: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+  --font-body: var(--font-brand);
+  --font-display: var(--font-brand);
+  --text-small: .875rem;
+  --text-body: 1rem;
+  --text-lead: clamp(1.0625rem, 1rem + .35vw, 1.25rem);
+  --text-subheading: clamp(1.1875rem, 1.075rem + .45vw, 1.5rem);
+  --text-section: clamp(2.25rem, 1.6rem + 2.45vw, 4.25rem);
+  --text-display: clamp(3.1rem, 1.55rem + 5vw, 5.75rem);
+  --text-page: clamp(3rem, 1.9rem + 4vw, 5.5rem);
+  --leading-display: 1.08;
+  --leading-heading: 1.2;
+  --leading-body: 1.6;
+  --tracking-heading: -.02em;
+  --space-1: .5rem;
+  --space-2: .75rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 3rem;
+  --space-7: 4rem;
+  --space-8: 6rem;
+  --radius-card: .75rem;
+  --radius-pill: 999px;
+  --radius-input: .375rem;
+  --gutter: clamp(1.25rem, 5vw, 5rem);
+  --container: 80rem;
+  --gap-columns: clamp(1.5rem, 4.2vw, 4rem);
+  --section-space: clamp(3.75rem, 8vw, 7rem);
+  --dur-short: 180ms;
+  --ease-out: cubic-bezier(.2,.65,.3,1);
+}
