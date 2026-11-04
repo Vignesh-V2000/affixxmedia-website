@@ -484,119 +484,136 @@
 
 @media (prefers-reduced-motion: no-preference) {
   body {
-    --entrance-distance: 1.75rem;
-    --entrance-time: 700ms;
+    --entrance-distance: 1.5rem;
+    --entrance-time: 650ms;
   }
 
-  /* Smooth scroll for the whole page */
   html { scroll-behavior: smooth; }
 
-  /* --- Hero entrance choreography --- */
-  .stage-copy > * {
-    animation: fade-up var(--entrance-time) var(--ease-out) backwards;
+  /*
+   * GPU compositing: promote hero layers so animations run on the
+   * compositor thread and never cause a main-thread repaint flash.
+   */
+  .hero-art,
+  .hero-art img,
+  .stage-copy {
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
-  .stage-copy h1 { animation-delay: 0ms; }
-  .stage-copy p { animation-delay: 120ms; }
-  .stage-copy .actions { animation-delay: 240ms; }
-  .hero-art img { animation: settle-art 1400ms var(--ease-out); }
 
-  /* --- Masthead / about hero entrance --- */
+  /* ── Hero entrance ── */
+  .stage-copy > * {
+    animation: fade-up var(--entrance-time) var(--ease-out) both;
+  }
+  .stage-copy h1  { animation-delay:   0ms; }
+  .stage-copy p   { animation-delay: 110ms; }
+  .stage-copy .actions { animation-delay: 220ms; }
+
+  /* Hero art: scale only, no opacity flash */
+  .hero-art img {
+    animation: settle-art 1200ms var(--ease-out) both;
+  }
+
+  /* ── Inner page mastheads ── */
   .masthead-inner > * {
-    animation: fade-up var(--entrance-time) var(--ease-out) backwards;
+    animation: fade-up var(--entrance-time) var(--ease-out) both;
   }
   .masthead-inner > *:nth-child(2) { animation-delay: 100ms; }
 
   .about-grid > * {
-    animation: fade-up var(--entrance-time) var(--ease-out) backwards;
+    animation: fade-up var(--entrance-time) var(--ease-out) both;
   }
-  .about-grid > *:nth-child(2) { animation-delay: 150ms; }
+  .about-grid > *:nth-child(2) { animation-delay: 140ms; }
 
-  /* --- Scroll-triggered reveal --- */
-  .reveal {
+  /*
+   * Scroll-reveal approach — flicker-free:
+   *   1. JS marks below-fold elements with [data-anim="wait"].
+   *   2. CSS hides them via opacity/transform (no layout shift).
+   *   3. JS swaps to [data-anim="play"] when in view.
+   *   4. `animation-fill-mode: both` locks the final state — we
+   *      never remove the class, so there's no teardown flash.
+   */
+  [data-anim="wait"] {
     opacity: 0;
-    transform: translateY(var(--entrance-distance));
+    transform: translate3d(0, var(--entrance-distance), 0);
+    will-change: opacity, transform;
   }
-  .revealed {
-    animation: fade-up var(--entrance-time) var(--ease-out) forwards;
-  }
-
-  /* Stagger children inside service index, values, client logos */
-  .service-index .revealed,
-  .values-list .revealed,
-  .client-logos .revealed {
-    animation-duration: 550ms;
+  [data-anim="play"] {
+    animation: fade-up var(--entrance-time) var(--ease-out) both;
   }
 
-  /* Legacy class from original JS */
-  .entered-view {
-    animation: fade-up var(--entrance-time) var(--ease-out) backwards;
-  }
-
-  .entered-view:focus-within,
-  .stage-copy .actions:focus-within { opacity: 1 !important; transform: none !important; }
-
-  /* --- Menu + accordion open --- */
+  /* ── Menu / accordion open ── */
   .mobile-menu[open] > nav,
   .service-detail[open] > .detail-content {
     --entrance-distance: -.375rem;
-    animation: fade-up 260ms var(--ease-out);
+    animation: fade-up 240ms var(--ease-out) both;
   }
 
-  /* --- Quote carousel slide --- */
-  .quote-changed .quote:not([hidden]) { animation: quote-in 320ms var(--ease-out); }
+  /* ── Quote carousel ── */
+  .quote-changed .quote:not([hidden]) { animation: quote-in 300ms var(--ease-out) both; }
 
-  /* --- Hover micro-interactions --- */
-  .service-row, .service-detail summary {
-    transition: background-color var(--dur-short) var(--ease-out);
-  }
+  /* ── Hover transitions ── */
+  .service-row,
+  .service-detail summary { transition: background-color var(--dur-short) var(--ease-out); }
+
   .insight-link { transition: border-color var(--dur-short) var(--ease-out); }
-  .button .icon, .text-link .icon, .service-row .icon, .insight-link .icon {
-    transition: transform var(--dur-short) var(--ease-out);
-  }
-  .article img {
-    transition: transform 400ms var(--ease-out), box-shadow 400ms var(--ease-out);
-  }
+
+  .button .icon,
+  .text-link .icon,
+  .service-row .icon,
+  .insight-link .icon { transition: transform var(--dur-short) var(--ease-out); }
+
+  /* Article images: isolated stacking context stops compositing conflicts */
+  .article { isolation: isolate; }
+  .article img { transition: transform 380ms var(--ease-out), box-shadow 380ms var(--ease-out); }
+
   .service-detail summary .icon { transition: rotate var(--dur-short) var(--ease-out); }
 
-  .button:focus-visible .icon, .service-row:focus-visible .icon, .insight-link:focus-visible .icon {
-    transform: translate(3px, -3px);
-  }
+  .button:focus-visible .icon,
+  .service-row:focus-visible .icon,
+  .insight-link:focus-visible .icon { transform: translate(3px, -3px); }
   .text-link:focus-visible .icon { transform: translateX(4px); }
+
   .button:not(:disabled):active { transform: translateY(1px); }
-  .round-button { transition: transform var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out); }
+  .round-button {
+    transition: transform var(--dur-short) var(--ease-out),
+                background-color var(--dur-short) var(--ease-out);
+  }
   .round-button:active { transform: scale(.93); }
 
-  /* --- Service row number accent pop --- */
+  /* Service number pop */
   .service-row .service-number,
   .service-detail summary .service-number {
-    transition: transform 300ms var(--ease-out), color 300ms var(--ease-out);
+    transition: color 280ms var(--ease-out);
   }
   .service-row:hover .service-number,
-  .service-detail summary:hover .service-number {
-    transform: scale(1.15);
-    color: var(--color-accent);
-  }
+  .service-detail summary:hover .service-number { color: var(--color-accent); }
 
-  /* --- Cursor-driven hover effects (desktop) --- */
+  /* ── Desktop-only hover effects ── */
   @media (hover: hover) and (pointer: fine) {
     .button:not(:disabled):hover:not(:active) { transform: translateY(-2px); }
-    .button:hover .icon, .service-row:hover .icon, .insight-link:hover .icon { transform: translate(3px, -3px); }
+    .button:hover .icon,
+    .service-row:hover .icon,
+    .insight-link:hover .icon { transform: translate(3px, -3px); }
     .text-link:hover .icon { transform: translateX(4px); }
     .insight-link:hover { border-color: var(--color-brand); }
-    .insight-link:hover img { transform: translateY(-6px); box-shadow: 0 12px 32px rgb(0 0 0 / .12); }
 
-    /* Contact panel lift on hover */
+    /* Image lift: wrapped in isolation so transform doesn't escape */
+    .insight-link:hover img {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 28px rgb(0 0 0 / .1);
+    }
+
     .contact-panel {
-      transition: transform 400ms var(--ease-out), box-shadow 400ms var(--ease-out);
+      transition: transform 380ms var(--ease-out), box-shadow 380ms var(--ease-out);
     }
     .contact-panel:hover {
       transform: translateY(-3px);
-      box-shadow: 0 16px 48px rgb(0 0 0 / .08);
+      box-shadow: 0 14px 44px rgb(0 0 0 / .07);
     }
 
-    /* Values list row highlight slide */
     .values-list > div {
-      transition: padding-left 300ms var(--ease-out), background-color 300ms var(--ease-out);
+      transition: padding-left 280ms var(--ease-out), background-color 280ms var(--ease-out);
       border-radius: var(--radius-input);
     }
     .values-list > div:hover {
@@ -604,30 +621,26 @@
       background: rgb(228 172 147 / .06);
     }
 
-    /* Quote figcaption image pop */
     .quote figcaption img {
-      transition: transform 300ms var(--ease-out), box-shadow 300ms var(--ease-out);
+      transition: transform 280ms var(--ease-out), box-shadow 280ms var(--ease-out);
     }
     .quote figcaption img:hover {
-      transform: scale(1.1);
-      box-shadow: 0 4px 16px rgb(0 0 0 / .12);
+      transform: scale(1.08);
+      box-shadow: 0 4px 14px rgb(0 0 0 / .1);
     }
 
-    /* Footer link underline slide */
-    .footer-main a, .footer-base a {
-      transition: color var(--dur-short) var(--ease-out);
-    }
-    .footer-main a:hover, .footer-base a:hover {
-      color: var(--color-accent);
-    }
+    .footer-main a,
+    .footer-base a { transition: color var(--dur-short) var(--ease-out); }
+    .footer-main a:hover,
+    .footer-base a:hover { color: var(--color-accent); }
   }
 
   @media (max-width: 42rem) {
     body {
-      --entrance-distance: 1rem;
-      --entrance-time: 500ms;
+      --entrance-distance: .875rem;
+      --entrance-time: 480ms;
     }
-    .hero-art img { animation-duration: 800ms; }
+    .hero-art img { animation-duration: 750ms; }
   }
 }
 
@@ -636,24 +649,32 @@
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(var(--entrance-distance));
+    transform: translate3d(0, var(--entrance-distance), 0);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate3d(0, 0, 0);
   }
 }
-@keyframes rise-in {
-  from { opacity: .78; transform: translateY(var(--entrance-distance)); }
-}
+
 @keyframes settle-art {
-  from { opacity: 0; transform: scale(1.12); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(1.1) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+  }
 }
+
 @keyframes quote-in {
-  from { opacity: .78; transform: translateX(calc(.75rem * var(--quote-direction))); }
-}
-@keyframes float-glow {
-  0%, 100% { box-shadow: 0 4px 20px rgb(185 118 95 / .15); }
-  50% { box-shadow: 0 8px 32px rgb(185 118 95 / .3); }
+  from {
+    opacity: 0;
+    transform: translate3d(calc(.6rem * var(--quote-direction, 1)), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }

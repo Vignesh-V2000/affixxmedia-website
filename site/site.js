@@ -3,255 +3,247 @@
 const menu = document.querySelector('.mobile-menu');
 
 if (menu) {
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && menu.open) {
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && menu.open) {
       menu.open = false;
       menu.querySelector('summary').focus();
     }
   });
-
-  document.addEventListener('pointerdown', (event) => {
-    if (menu.open && !menu.contains(event.target)) menu.open = false;
+  document.addEventListener('pointerdown', (e) => {
+    if (menu.open && !menu.contains(e.target)) menu.open = false;
   });
 }
 
 /* ─── Testimonial carousel ───────────────────────────────────── */
 
-const quoteList = document.querySelector('.quote-list');
-const quotes = quoteList?.querySelectorAll('.quote');
+const quoteList    = document.querySelector('.quote-list');
+const quotes       = quoteList?.querySelectorAll('.quote');
 const quoteControls = document.querySelector('.quote-controls');
 
 if (quoteControls && quotes?.length > 1) {
   let activeQuote = 0;
   let autoTimer;
 
-  const showQuote = () => {
-    quotes.forEach((quote, index) => {
-      quote.hidden = index !== activeQuote;
-    });
+  const showQuote = (step) => {
+    if (step !== undefined) {
+      quoteList.style.setProperty('--quote-direction', step);
+      quoteList.classList.remove('quote-changed');
+      // Force reflow so removing and re-adding the class retriggers the animation
+      void quoteList.offsetWidth;
+      quoteList.classList.add('quote-changed');
+      activeQuote = (activeQuote + step + quotes.length) % quotes.length;
+    }
+    quotes.forEach((q, i) => { q.hidden = i !== activeQuote; });
   };
 
-  const advanceQuote = (step) => {
-    quoteList.style.setProperty('--quote-direction', step);
-    quoteList.classList.add('quote-changed');
-    activeQuote = (activeQuote + step + quotes.length) % quotes.length;
-    showQuote();
-  };
-
-  // Auto-rotate testimonials every 6 seconds
   const startAuto = () => {
     clearInterval(autoTimer);
-    autoTimer = setInterval(() => advanceQuote(1), 6000);
+    autoTimer = setInterval(() => showQuote(1), 6000);
   };
 
   showQuote();
   quoteControls.hidden = false;
   startAuto();
 
-  quoteControls.addEventListener('click', (event) => {
-    const control = event.target.closest('[data-quote-step]');
-    if (!control) return;
-    advanceQuote(Number(control.dataset.quoteStep));
-    startAuto(); // restart timer after manual nav
+  quoteControls.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-quote-step]');
+    if (!btn) return;
+    showQuote(Number(btn.dataset.quoteStep));
+    startAuto();
   });
 }
 
-/* ─── Service accordion (deep link) ──────────────────────────── */
+/* ─── Service accordion deep-link ───────────────────────────── */
 
 function openLinkedService() {
-  const section = document.getElementById(location.hash.slice(1));
-  if (section?.matches('.service-detail')) section.open = true;
+  const id = location.hash.slice(1);
+  const el = id ? document.getElementById(id) : null;
+  if (el?.matches('.service-detail')) el.open = true;
 }
-
 openLinkedService();
 window.addEventListener('hashchange', openLinkedService);
 
-/* ─── Scroll-reveal animations ───────────────────────────────── */
+/* ─── Scroll-reveal (flicker-free) ──────────────────────────── */
+/*
+ * Strategy:
+ *  1. Mark below-fold targets with data-anim="wait" so CSS hides them.
+ *  2. IntersectionObserver swaps to data-anim="play", triggering the
+ *     @keyframes fade-up with animation-fill-mode:both.
+ *  3. We NEVER remove the attribute — `both` locks the final visible
+ *     state, so there is no teardown flash.
+ *  4. Stagger is applied via inline animation-delay BEFORE switching
+ *     the attribute, so the element is hidden during the delay (not
+ *     briefly visible at opacity 0 then hidden again).
+ */
 
-if ('IntersectionObserver' in window && window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-  // All elements we want to animate on scroll
-  const revealTargets = document.querySelectorAll(
-    '.client-logos li, .section-intro, .service-index li, .service-detail, ' +
-    '.proof-intro, .quote-list, .section-heading, .article, .contact-band-inner, ' +
-    '.mission-grid > *, .values-list > div, .contact-panel, .contact-intro, ' +
-    '.footer-main > *, .footer-base'
+if (!reducedMotion.matches && 'IntersectionObserver' in window) {
+
+  const SELECTOR =
+    '.client-logos li, .section-intro, .service-index li, .service-detail,' +
+    '.proof-intro, .quote-list, .section-heading, .article, .contact-band-inner,' +
+    '.mission-grid > *, .values-list > div, .contact-panel, .contact-intro,' +
+    '.footer-main > *, .footer-base';
+
+  const targets = Array.from(document.querySelectorAll(SELECTOR));
+  const viewH   = window.innerHeight;
+
+  // Only hide elements that are genuinely below the fold
+  const belowFold = targets.filter(
+    (el) => el.getBoundingClientRect().top > viewH * 0.9
   );
+  belowFold.forEach((el) => el.setAttribute('data-anim', 'wait'));
 
-  // Add the .reveal class to targets that are below the fold
-  for (const target of revealTargets) {
-    if (target.getBoundingClientRect().top >= window.innerHeight * 0.85) {
-      target.classList.add('reveal');
-    }
-  }
+  let batchT = 0;
+  let idx    = 0;
 
-  // Stagger delay counter per batch
-  let lastBatchTime = 0;
-  let staggerIndex = 0;
-
-  const revealOnScroll = new IntersectionObserver((entries) => {
+  const observer = new IntersectionObserver((entries) => {
     const now = performance.now();
+    if (now - batchT > 150) { idx = 0; batchT = now; }
 
-    // Reset stagger when a new batch of entries comes in
-    if (now - lastBatchTime > 100) {
-      staggerIndex = 0;
-      lastBatchTime = now;
-    }
+    entries
+      .filter((e) => e.isIntersecting && e.target.getAttribute('data-anim') === 'wait')
+      .forEach((e) => {
+        const el    = e.target;
+        const delay = idx * 70;
+        idx++;
 
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
+        // Set delay while element is still hidden, then reveal
+        el.style.animationDelay = delay + 'ms';
+        el.setAttribute('data-anim', 'play');
+        observer.unobserve(el);
+      });
+  }, { rootMargin: '0px 0px -48px 0px', threshold: 0.04 });
 
-      const el = entry.target;
-
-      // Stagger: add incremental delay for elements revealed together
-      const delay = staggerIndex * 80;
-      el.style.animationDelay = delay + 'ms';
-      staggerIndex++;
-
-      el.classList.remove('reveal');
-      el.classList.add('revealed');
-
-      revealOnScroll.unobserve(el);
-
-      // Clean up animation styles after animation completes
-      el.addEventListener('animationend', () => {
-        el.style.animationDelay = '';
-        el.classList.remove('revealed');
-        // element stays visible because .reveal was removed
-      }, { once: true });
-    }
-  }, {
-    rootMargin: '0px 0px -60px 0px',
-    threshold: 0.05
-  });
-
-  for (const target of revealTargets) {
-    if (target.classList.contains('reveal')) {
-      revealOnScroll.observe(target);
-    }
-  }
+  belowFold.forEach((el) => observer.observe(el));
 }
 
-/* ─── Parallax-lite for hero image ───────────────────────────── */
-
-if (window.matchMedia('(prefers-reduced-motion: no-preference) and (hover: hover)').matches) {
-  const heroArt = document.querySelector('.hero-art img');
-
-  if (heroArt) {
-    let ticking = false;
-
-    window.addEventListener('scroll', () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          const scrollY = window.scrollY;
-          const heroBottom = heroArt.closest('.home-hero')?.offsetHeight || 700;
-
-          if (scrollY < heroBottom) {
-            const parallax = scrollY * 0.15;
-            heroArt.style.transform = `translateY(${parallax}px) scale(1.02)`;
-          }
-          ticking = false;
-        });
-        ticking = true;
-      }
-    }, { passive: true });
-  }
-}
-
-/* ─── Navbar shrink on scroll ────────────────────────────────── */
+/* ─── Sticky header shrink ───────────────────────────────────── */
 
 const header = document.querySelector('.site-header');
-
 if (header) {
-  let lastScrollY = 0;
-  let headerTicking = false;
-
+  let ticking = false;
   window.addEventListener('scroll', () => {
-    if (!headerTicking) {
-      requestAnimationFrame(() => {
-        if (window.scrollY > 80) {
-          header.classList.add('header-scrolled');
-        } else {
-          header.classList.remove('header-scrolled');
-        }
-        lastScrollY = window.scrollY;
-        headerTicking = false;
-      });
-      headerTicking = true;
-    }
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      header.classList.toggle('header-scrolled', window.scrollY > 72);
+      ticking = false;
+    });
   }, { passive: true });
 }
 
-/* ─── Counter animation for service numbers ──────────────────── */
+/* ─── Parallax hero (compositor-safe) ───────────────────────── */
+/*
+ * We animate a CSS custom property on the hero wrapper rather than
+ * directly setting `transform` on the img (which would conflict with
+ * the settle-art @keyframes). The browser composites only the wrapper.
+ */
 
-if ('IntersectionObserver' in window && window.matchMedia('(prefers-reduced-motion: no-preference)').matches) {
-  const serviceNumbers = document.querySelectorAll('.service-number');
+if (!reducedMotion.matches) {
+  const heroWrapper = document.querySelector('.home-hero');
 
-  if (serviceNumbers.length) {
-    const counterObserver = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        const el = entry.target;
-        const target = parseInt(el.textContent, 10);
+  if (heroWrapper) {
+    const heroArt = heroWrapper.querySelector('.hero-art');
+    let pticking = false;
 
-        if (isNaN(target)) { counterObserver.unobserve(el); continue; }
-
-        let current = 0;
-        const step = () => {
-          current++;
-          el.textContent = String(current).padStart(2, '0');
-          if (current < target) requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-        counterObserver.unobserve(el);
+    // Only run while the hero is visible
+    const heroObserver = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        window.addEventListener('scroll', onScroll, { passive: true });
+      } else {
+        window.removeEventListener('scroll', onScroll);
+        if (heroArt) heroArt.style.transform = '';
       }
-    }, { threshold: 0.5 });
+    }, { threshold: 0 });
 
-    for (const num of serviceNumbers) {
-      counterObserver.observe(num);
+    heroObserver.observe(heroWrapper);
+
+    function onScroll() {
+      if (pticking) return;
+      pticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (heroArt) {
+          // translateZ(0) keeps it on the GPU layer
+          heroArt.style.transform = `translateY(${y * 0.12}px) translateZ(0)`;
+        }
+        pticking = false;
+      });
     }
   }
 }
 
-/* ─── Form enquiry ───────────────────────────────────────────── */
+/* ─── Service number count-up ────────────────────────────────── */
+
+if (!reducedMotion.matches && 'IntersectionObserver' in window) {
+  const nums = document.querySelectorAll('.service-number');
+
+  if (nums.length) {
+    const countObserver = new IntersectionObserver((entries) => {
+      entries.forEach(({ isIntersecting, target }) => {
+        if (!isIntersecting) return;
+        const end = parseInt(target.textContent, 10);
+        if (isNaN(end)) { countObserver.unobserve(target); return; }
+
+        // Smooth eased counter using requestAnimationFrame
+        const duration = 500;
+        const startT   = performance.now();
+
+        const tick = (now) => {
+          const pct = Math.min((now - startT) / duration, 1);
+          // Ease-out cubic
+          const ease = 1 - Math.pow(1 - pct, 3);
+          target.textContent = String(Math.round(ease * end)).padStart(2, '0');
+          if (pct < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+        countObserver.unobserve(target);
+      });
+    }, { threshold: 0.6 });
+
+    nums.forEach((n) => countObserver.observe(n));
+  }
+}
+
+/* ─── Enquiry form ───────────────────────────────────────────── */
 
 const enquiryForm = document.querySelector('.enquiry-form');
 
 if (enquiryForm) {
-  const serviceField = enquiryForm.elements.namedItem('service');
+  const serviceField       = enquiryForm.elements.namedItem('service');
   const requiredTextFields = [
     enquiryForm.elements.namedItem('name'),
-    enquiryForm.elements.namedItem('message')
+    enquiryForm.elements.namedItem('message'),
   ];
   const service = new URLSearchParams(location.search).get('service');
 
-  if (service && Array.from(serviceField.options).some((option) => option.value === service)) {
+  if (service && Array.from(serviceField.options).some((o) => o.value === service)) {
     serviceField.value = service;
   }
 
-  requiredTextFields.forEach((field) => {
-    field.addEventListener('input', () => field.setCustomValidity(''));
+  requiredTextFields.forEach((f) => {
+    f.addEventListener('input', () => f.setCustomValidity(''));
   });
 
-  enquiryForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-
-    const blankField = requiredTextFields.find((field) => !field.value.trim());
-    if (blankField) {
-      blankField.setCustomValidity('Please enter text in this field.');
-      blankField.reportValidity();
+  enquiryForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const blank = requiredTextFields.find((f) => !f.value.trim());
+    if (blank) {
+      blank.setCustomValidity('Please enter text in this field.');
+      blank.reportValidity();
       return;
     }
-
-    const fields = new FormData(enquiryForm);
+    const fields  = new FormData(enquiryForm);
     const subject = encodeURIComponent('AffixxMedia project enquiry');
-    const body = encodeURIComponent([
-      'Name: ' + fields.get('name').trim(),
-      'Email: ' + fields.get('email').trim(),
+    const body    = encodeURIComponent([
+      'Name: '               + fields.get('name').trim(),
+      'Email: '              + fields.get('email').trim(),
       'Company or website: ' + fields.get('company').trim(),
-      'Service: ' + serviceField.selectedOptions[0].textContent,
+      'Service: '            + serviceField.selectedOptions[0].textContent,
       '',
-      fields.get('message').trim()
+      fields.get('message').trim(),
     ].join('\r\n'));
 
     enquiryForm.querySelector('.draft-note').textContent =
