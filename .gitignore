@@ -1,0 +1,15 @@
+# Zip archives
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+
+# Agent/AI tooling internals
+.agents/
+.hallmark/
+skills-lock.json

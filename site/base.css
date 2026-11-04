@@ -1,0 +1,42 @@
+/* Hallmark · AffixxMedia foundation */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-color: var(--color-rule-input) var(--color-paper);
+}
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font: 400 var(--text-body)/var(--leading-body) var(--font-body);
+}
+::selection { background: var(--color-accent); color: var(--color-accent-ink); }
+h1, h2, h3, p, figure, blockquote, ul { margin: 0; }
+h1, h2, h3 {
+  min-width: 0;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: var(--leading-heading);
+  letter-spacing: var(--tracking-heading);
+}
+h1 { font-size: var(--text-page); line-height: var(--leading-display); }
+h2 { font-size: var(--text-section); }
+h3 { font-size: var(--text-subheading); }
+p { max-inline-size: 67ch; text-wrap: pretty; }
+img { display: block; max-width: 100%; height: auto; }
+a { color: inherit; text-underline-offset: .2em; }
+button, input, select, textarea { font: inherit; }
+button, summary, select { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--focus-ring, var(--color-focus)); outline-offset: 4px; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}

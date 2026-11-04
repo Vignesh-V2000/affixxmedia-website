@@ -1,0 +1,54 @@
+name: AffixxMedia
+brand_type: content-rich
+philosophy: A clear path from creative strategy to a conversation.
+visitor_job: Find a growth service and start an enquiry.
+observed_style:
+  sources:
+    - https://affixxmedia.com/
+    - https://affixxmedia.com/css/style.css
+    - https://affixxmedia.com/header.html
+    - https://affixxmedia.com/about.html
+  default_palette:
+    background: "#040404"
+    raised_surface: "#1f1f1f"
+    text: "#d1d1d1"
+    copper: "#b9765f"
+  font: Plus Jakarta Sans
+  radius: 25px
+  hero_stage: Warm brown to black gradient behind a large headline.
+  icons: Filled Font Awesome glyphs in the original header and footer.
+tokens:
+  paper: "#f8f5f0"
+  secondary_surface: "#eee7df"
+  ink: "#201915"
+  night: "#151210"
+  copper: "#b9765f"
+  action_on_dark: "#e4ac93"
+  link_on_light: "#853d28"
+  display_and_body: Plus Jakarta Sans
+  body_size: 1rem
+  body_line_height: 1.6
+  prose_measure: 67ch
+  container: 80rem
+  spacing_rem: [0.5, 0.75, 1, 1.5, 2, 3, 4, 6]
+  radius:
+    image: 0.75rem
+    input: 0.375rem
+    action: 999px
+  motion_ms: 180
+hero_stage:
+  medium: studio still life
+  subject: A folded brushed copper sculpture
+  backdrop: Warm charcoal
+  desktop: Type and actions in front of an offset art stage
+  mobile: Type and actions above the artwork
+icon_system:
+  observed_style: Filled, rounded glyphs with medium visual weight.
+  fallback_kit: Lucide
+  match_reasoning: The simple geometry works at navigation sizes and keeps directional controls consistent across both palettes.
+  change: The new glyphs use an outline so actions sit lightly beside the larger brand marks.
+layout:
+  navigation: Shared page links and one consultation action
+  service_directory: Labeled rows and native disclosures
+  trust: Static client marks and manual testimonial controls
+  contact: Direct channels with a project email draft
